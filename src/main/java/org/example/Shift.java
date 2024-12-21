@@ -1,6 +1,8 @@
 package org.example;
 
 import java.io.*;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,24 +18,16 @@ public class Shift {
     static boolean isStatLong = false; //Опция -l. Требуется полная статистика
     static List<String> inputFiles = new ArrayList<>(); //Список файлов с исходными данными
 
-    static ValueStatistic<Integer> integerValueStatistic; //Статистика для целых чисел
-    static ValueStatistic<Float> floatValueStatistic; //Статистика для чисел с плавающей точкой
+    static ValueStatistic<BigInteger> integerValueStatistic; //Статистика для целых чисел
+    static ValueStatistic<BigDecimal> floatValueStatistic; //Статистика для чисел с плавающей точкой
     static ValueStatistic<String> stringValueStatistic; //Статистика для строк
-
-    static boolean isFileIntegerCreated = false; //Файл для записи целых чисел был создан
-    static boolean isFileFloatCreated = false; //Файл для записи чисел с плавающей точкой был создан
-    static boolean isFileStringCreated = false; //Файл для записи строк был создан
-
-    static FileWriter fileIntegerWrite; //Файл для записи целых чисел
-    static FileWriter fileFloatWrite; //Файл для записи чисел с плавающей точкой
-    static FileWriter fileStringWrite; //Файл для записи строк
 
     static String fileNameInteger; //Имя файла для записи целых чисел
     static String fileNameFloat; //Имя файла для записи чисел с плавающей точкой
     static String fileNameString; //Имя файла для записи строк
 
-    static int valueInteger; // для возврата значения целого числа
-    static float valueFloat; // для возврата числа с плавающей точкой
+    static BigInteger valueInteger; // для возврата значения целого числа
+    static BigDecimal valueFloat; // для возврата числа с плавающей точкой
 
     /**
      * Аргументы командной строки
@@ -45,7 +39,8 @@ public class Shift {
      */
 
     public static void main(String[] args) {
-//        args = new String[]{"input.txt", "-p", "out-", "-l", "-o", "out"};
+        String line;
+        args = new String[]{"-l", "-a", "-p", "sample-", "in1.txt", "in2.txt"};
         parseArguments(args); // Распознать аргументы командной строки
 
         if (path.compareTo("") != 0 && path.substring(path.length() - 1).compareTo("/") != 0)
@@ -59,12 +54,27 @@ public class Shift {
         if (isStatLong) isStatShort = false;
 
         //создание объектов для учета статистики по каждому типу данных
-        integerValueStatistic = new ValueStatistic<Integer>(isStatShort, isStatLong); //для целых чисел
-        floatValueStatistic = new ValueStatistic<Float>(isStatShort, isStatLong); //для чисел с плавающей точкой
+        integerValueStatistic = new ValueStatistic<BigInteger>(isStatShort, isStatLong); //для целых чисел
+        floatValueStatistic = new ValueStatistic<BigDecimal>(isStatShort, isStatLong); //для вещественных чисел
         stringValueStatistic = new ValueStatistic<String>(isStatShort, isStatLong); //для строк
 
-        for (String fileName : inputFiles)
-            readFromFile(fileName); //чтение данных из файлов
+        FileManager fileManager = new FileManager(inputFiles);
+        line = fileManager.getNext();
+        while (line != null){
+            if (isInteger(line)){
+                integerValueStatistic.put(valueInteger);
+                fileManager.writeToFile(fileNameInteger, line, isAppend, "integer");
+            }
+            else if(isFloat(line)){
+                floatValueStatistic.put(valueFloat);
+                fileManager.writeToFile(fileNameFloat, line, isAppend, "float");
+            }
+            else{
+                stringValueStatistic.put(line);
+                fileManager.writeToFile(fileNameString, line, isAppend, "string");
+            }
+            line = fileManager.getNext();
+        }
 
         if (!isStatShort && !isStatLong) return; //статистику выводить не надо
 
@@ -73,9 +83,10 @@ public class Shift {
             if (isStatLong) {
                 System.out.println("Сумма целых чисел: " + integerValueStatistic.getSum());
                 System.out.println("Среднее арифметическое целых чисел: " +
-                        (Integer) integerValueStatistic.getSum() / integerValueStatistic.getCount());
+                        integerValueStatistic.getAverrage().toString());
                 System.out.println("Минимальное целое число: " + integerValueStatistic.getMin());
                 System.out.println("Максимальное целое число: " + integerValueStatistic.getMax());
+                System.out.println();
             }
         }
 
@@ -84,9 +95,10 @@ public class Shift {
             if (isStatLong) {
                 System.out.println("Сумма чисел с плавающей точкой: " + floatValueStatistic.getSum());
                 System.out.println("Среднее арифметическое целых чисел: " +
-                        (Float) floatValueStatistic.getSum() / floatValueStatistic.getCount());
+                        floatValueStatistic.getAverrage().toString());
                 System.out.println("Минимальное число с плавающей точкой: " + floatValueStatistic.getMin());
                 System.out.println("Максимальное число с плавающей точкой: " + floatValueStatistic.getMax());
+                System.out.println();
             }
         }
 
@@ -100,68 +112,6 @@ public class Shift {
 
     }
 
-
-    /**
-     * Метод читает исходные файлы построчно, сортирует данные по их типу, записывает в соответствующий
-     * результирующий файл
-     */
-    public static void readFromFile(String filename) {
-        FileReader reader;
-        try {
-            reader = new FileReader(filename);
-        } catch (IOException e) {
-            System.out.println("Ошибка открытия файла с исходными данными " + filename);
-            return;
-        }
-        BufferedReader br = new BufferedReader(reader);
-        String line;
-        while (true) {
-            try {
-                line = br.readLine();
-            } catch (IOException e) {
-                break;
-            }
-            if (line == null) return;
-            if (isInteger(line)) {
-                integerValueStatistic.put(valueInteger);
-                if (!isFileIntegerCreated) {
-                    try {
-                        fileIntegerWrite = new FileWriter(fileNameInteger, isAppend);
-                    } catch (IOException e) {
-                        System.out.println("Ошибка открытия файла " + fileNameInteger);
-                        continue;
-                    }
-                    isFileIntegerCreated = true;
-                }
-                print(fileIntegerWrite, line);
-            } else if (isFloat(line)) {
-                floatValueStatistic.put(valueFloat);
-                if (!isFileFloatCreated) {
-                    try {
-                        fileFloatWrite = new FileWriter(fileNameFloat, isAppend);
-                    } catch (IOException e) {
-                        System.out.println("Ошибка открытия файла " + fileNameFloat);
-                        continue;
-                    }
-                    isFileFloatCreated = true;
-                }
-                print(fileFloatWrite, line);
-            } else {
-                if (!isFileStringCreated) {
-                    try {
-                        fileStringWrite = new FileWriter(fileNameString, isAppend);
-                    } catch (IOException e) {
-                        System.out.println("Ошибка открытия файла " + fileNameString);
-                        continue;
-                    }
-                    isFileStringCreated = true;
-                }
-                stringValueStatistic.put(line);
-                print(fileStringWrite, line);
-            }
-
-        }
-    }
 
     /**
      * Проверяет наличие элемента String в массиве
@@ -180,7 +130,7 @@ public class Shift {
      */
     public static boolean isInteger(String value) {
         try {
-            valueInteger = Integer.parseInt(value);
+            valueInteger = new BigInteger(value);
         } catch (NumberFormatException e) {
             return false;
         }
@@ -193,7 +143,7 @@ public class Shift {
      */
     public static boolean isFloat(String value) {
         try {
-            valueFloat = Float.parseFloat(value);
+            valueFloat = new BigDecimal(value);
         } catch (NumberFormatException e) {
             return false;
         }
@@ -233,16 +183,4 @@ public class Shift {
         }
     }
 
-    /**
-     * Осуществляет запись данных в соответствующий файл
-     */
-    public static void print(FileWriter fileWriter, String value) {
-        try {
-            fileWriter.write(value + "\n");
-            fileWriter.flush();
-        } catch (IOException e) {
-            System.out.println("Ошибка записи " + "\"" + value + "\"");
-            return;
-        }
-    }
 }

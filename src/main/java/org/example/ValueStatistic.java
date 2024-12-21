@@ -1,5 +1,9 @@
 package org.example;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.math.RoundingMode;
+
 /**
  * Класс для учета статистики по каждому типу данных
  */
@@ -16,7 +20,6 @@ public class ValueStatistic<T>{
         this.statShort = statShort;
         this.statLong = statLong;
         this.countValue = 0;
-        this.sumValue = 0;
     }
 
     /**
@@ -24,28 +27,48 @@ public class ValueStatistic<T>{
      */
     void put(T value)
     {
-        if (statShort || statLong) countValue ++;
+        if (statShort || statLong) this.countValue ++;
         if (!statLong) return;
 
         String valueType = value.getClass().getTypeName();
-        if (valueType.indexOf("Integer") > 0) //Передано целое число
-        {
-            sumValue = sumValue.intValue() + (Integer) value;
-            if (minValue == null) minValue = (Integer) value;
-            else if((Integer)value < (Integer) minValue) minValue = (Integer) value;
-            if (maxValue == null) maxValue = (Integer) value;
-            else if((Integer)value > (Integer) maxValue) maxValue = (Integer) value;
+        if (valueType.indexOf("BigInteger") > 0) { //Передано целое число
+            BigInteger localSum = (BigInteger) this.sumValue;
+            BigInteger localValue = (BigInteger) value;
+            BigInteger localMin = (BigInteger) this.minValue;
+            BigInteger localMax = (BigInteger) this.maxValue;
+
+
+            if (this.sumValue == null) localSum = localValue;
+            else localSum = localSum.add(localValue);
+            this.sumValue = (Number) localSum;
+
+            if (this.minValue == null) localMin = localValue;
+            else if (localValue.compareTo(localMin) < 0) localMin = localValue;
+            this.minValue = (Number) localMin;
+
+            if (this.maxValue == null) localMax = localValue;
+            else if (localValue.compareTo(localMax) > 0) localMax = localValue;
+            this.maxValue = (Number) localMax;
         }
-        else if (valueType.indexOf("Float") > 0)
-        {
-            sumValue = sumValue.floatValue() + (Float) value;
-            if (minValue == null) minValue = (Float) value;
-            else if ((Float)value < (Float) minValue) minValue = (Float) value;
-            if (maxValue == null) maxValue = (Float)value;
-            else if((Float)value > (Float) maxValue) maxValue = (Float) value;
+        else if (valueType.indexOf("BigDecimal") > 0) {
+            BigDecimal localSum = (BigDecimal) this.sumValue;
+            BigDecimal localValue = (BigDecimal) value;
+            BigDecimal localMin = (BigDecimal) this.minValue;
+            BigDecimal localMax = (BigDecimal) this.maxValue;
+
+            if (this.sumValue == null) localSum = localValue;
+            else localSum = localSum.add(localValue);
+            this.sumValue = (Number) localSum;
+
+            if (this.minValue == null) localMin = localValue;
+            else if (localValue.compareTo(localMin) < 0) localMin = localValue;
+            this.minValue = (Number) localMin;
+
+            if (this.maxValue == null) localMax = localValue;
+            else if (localValue.compareTo(localMax) > 0) localMax = localValue;
+            this.maxValue = (Number) localMax;
         }
-        else if (valueType.indexOf("String") > 0)
-        {
+        else if (valueType.indexOf("String") > 0) {
             if (minValue == null) minValue = ((String)value).length();
             else if (((String)value).length() < (Integer)minValue) minValue = ((String)value).length();
             if (maxValue == null) maxValue = ((String)value).length();
@@ -79,5 +102,11 @@ public class ValueStatistic<T>{
      */
     public Number getMax(){
         return this.maxValue;
+    }
+
+    public BigDecimal getAverrage(){
+        BigDecimal sum = new BigDecimal(this.sumValue.toString());
+        BigDecimal count = new BigDecimal(this.countValue);
+        return sum.divide(count, RoundingMode.HALF_UP);
     }
 }
