@@ -45,7 +45,7 @@ public class Shift {
      */
 
     public static void main(String[] args) {
-        args = new String[]{"input.txt", "-p", "out", "-l", "-o", "out"};
+//        args = new String[]{"input.txt", "-p", "out-", "-l", "-o", "out"};
         parseArguments(args); // Распознать аргументы командной строки
 
         if (path.compareTo("") != 0 && path.substring(path.length() - 1).compareTo("/") != 0)
