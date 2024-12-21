@@ -24,6 +24,10 @@ public class FileManager {
     private static boolean errorOpenFileFloat = false;
     private static boolean errorOpenFileString = false;
 
+    /**
+     * Метод последовательно перебирает файлы с исходной информацией и поочередно
+     * читает по одной строке из каждого файла
+     */
     FileManager(List<String> fileNames) {
         listBufferedReader = new ArrayList<>();
         this.fileNames = fileNames;
@@ -33,6 +37,9 @@ public class FileManager {
         this.manage = 0;
     }
 
+    /**
+     * Открывает файл с заданным именем и возвращает ссылку на открытый файл
+     */
     private BufferedReader openFile(String fileName){
         FileReader reader;
         try {
@@ -44,6 +51,9 @@ public class FileManager {
         return new BufferedReader(reader);
     }
 
+    /**
+     * Читает по одной строке из всех файлов в списке по очереди
+     */
     public String getNext(){
         if (listBufferedReader.isEmpty()) return null;
         boolean[]wasHear = new boolean[listBufferedReader.size()];
@@ -76,6 +86,10 @@ public class FileManager {
         }
     }
 
+    /**
+     * Осуществляет запись в заданный файл
+     * При необходимости этот файл создается
+     */
     public void writeToFile(String fileName, String value, boolean isAppend, String type){
         FileWriter fileWriter = null;
         boolean toConsole = false;
